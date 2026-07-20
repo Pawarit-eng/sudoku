@@ -56,7 +56,7 @@ const illegalCells = computed(() => {
   for (let i = 0; i < 81; i++) {
     if (props.board[i] !== val) continue;
     for (const p of peersOf(i)) {
-      if (props.board[p] === 0) set.add(p);
+      set.add(p);
     }
   }
   return set;
@@ -160,6 +160,10 @@ function cellClasses(i) {
    rest of the highlighted row/column/box, no texture. */
 .cell.illegal {
   background: var(--paper-shade);
+}
+
+.cell.illegal .value {
+  color: var(--text);
 }
 
 .cell.selected {
