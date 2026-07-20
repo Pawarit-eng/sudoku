@@ -1,0 +1,79 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@500;600;700;800&display=swap");
+
+:root {
+  /* Backgrounds, darkest to lightest */
+  --void: #040406; /* page background, grid gutter, illegal-cell fill */
+  --paper: #3b3d4e; /* cell background, modal/card background */
+  --paper-shade: #5c5f7a; /* peer-highlighted cells, secondary chrome (pills, tags, icon buttons) */
+
+  /* Text */
+  --text: #f2f1ee; /* primary text (values, timer, body) */
+  --ink-soft: #9a98a1; /* secondary/muted text (hints, subtitles) */
+  --on-accent: #ffffff; /* text sitting on solid blue accent buttons */
+  --on-gold: #201c14; /* text sitting on solid gold buttons */
+
+  /* Accent (blue) */
+  --accent: #3f63c9; /* accent button backgrounds */
+  --accent-press: #557bde; /* pressed/active accent state */
+  --accent-text: #8ab0ff; /* accent used as text on dark surfaces */
+
+  /* Gold (secondary accent, used sparingly for CTAs/highlights) */
+  --gold: #e0ac4a;
+  --gold-soft: rgba(224, 172, 74, 0.16);
+
+  /* Status */
+  --clay: #ff8a77; /* conflict text */
+  --clay-soft: #54241c; /* conflict cell background */
+
+  /* Lines */
+  --line: #73758c;
+  --line-strong: #a7a9b4;
+
+  --radius: 14px;
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--void);
+  color: var(--text);
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+#app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: env(safe-area-inset-top, 16px) 14px calc(env(safe-area-inset-bottom, 16px) + 10px);
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Fraunces", serif;
+  margin: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
