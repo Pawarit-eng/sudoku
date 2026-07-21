@@ -126,7 +126,7 @@ function cellClasses(i) {
 }
 
 .cell {
-  background: var(--paper);
+  background: var(--void);
   border: 1px solid var(--line);
   display: flex;
   align-items: center;
@@ -143,23 +143,18 @@ function cellClasses(i) {
   border-bottom: 2.5px solid var(--line-strong);
 }
 
-/* Checkerboard shading per 3x3 box, purely for visual box separation. */
-.cell.alt {
-  background: var(--void);
-}
-
 .cell.peer {
-  background: var(--paper-shade);
+  background: var(--paper);
 }
 
 .cell.peer .value {
   color: var(--text);
 }
 
-/* Cells where the selected number can't legally go — same flat gray as the
-   rest of the highlighted row/column/box, no texture. */
+/* Cells where the selected number can't legally go — same gray as the rest
+   of the highlighted row/column/box. */
 .cell.illegal {
-  background: var(--paper-shade);
+  background: var(--paper);
 }
 
 .cell.illegal .value {
