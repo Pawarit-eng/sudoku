@@ -12,25 +12,6 @@ const props = defineProps({
 });
 const emit = defineEmits(["select"]);
 
-const selRow = computed(() =>
-  props.selected === null ? null : Math.floor(props.selected / 9)
-);
-const selCol = computed(() =>
-  props.selected === null ? null : props.selected % 9
-);
-
-function isPeer(i) {
-  if (props.selected === null) return false;
-  const row = Math.floor(i / 9);
-  const col = i % 9;
-  const sameRow = row === selRow.value;
-  const sameCol = col === selCol.value;
-  const sameBox =
-    Math.floor(row / 3) === Math.floor(selRow.value / 3) &&
-    Math.floor(col / 3) === Math.floor(selCol.value / 3);
-  return sameRow || sameCol || sameBox;
-}
-
 function peersOf(i) {
   const row = Math.floor(i / 9);
   const col = i % 9;
@@ -45,10 +26,10 @@ function peersOf(i) {
   return out;
 }
 
-// Mark every empty cell that shares a row/column/box with any occurrence of
-// the highlighted number — those cells can't legally take that number, so
-// they're dimmed/hazy on the grid. Triggered either by selecting a cell that
-// already holds a value, or by tapping that number on the number pad.
+// Mark every cell that shares a row/column/box with any occurrence of the
+// highlighted number — those cells can't legally take that number there
+// (either already filled, or empty but blocked), so they're grayed on the
+// grid. Triggered by selecting a cell that already holds a value.
 const illegalCells = computed(() => {
   const set = new Set();
   const val = props.highlightNumber;
@@ -66,13 +47,10 @@ function cellClasses(i) {
   const row = Math.floor(i / 9);
   const col = i % 9;
   const val = props.board[i];
-  const boxRow = Math.floor(row / 3);
-  const boxCol = Math.floor(col / 3);
   return {
     fixed: props.fixed[i],
-    alt: (boxRow + boxCol) % 2 === 1,
+    "has-value": val !== 0,
     selected: i === props.selected,
-    peer: isPeer(i) && i !== props.selected && props.highlightNumber !== 0,
     "same-value":
       val !== 0 &&
       props.highlightNumber !== 0 &&
@@ -143,16 +121,14 @@ function cellClasses(i) {
   border-bottom: 2.5px solid var(--line-strong);
 }
 
-.cell.peer {
+/* Any cell that already has a number is always gray — it can never accept
+   new input anyway, filled or clue alike. */
+.cell.has-value {
   background: var(--paper);
 }
 
-.cell.peer .value {
-  color: var(--text);
-}
-
-/* Cells where the selected number can't legally go — same gray as the rest
-   of the highlighted row/column/box. */
+/* Empty cells where the selected number can't legally go — same gray as
+   filled cells, so the whole "unavailable" zone reads consistently. */
 .cell.illegal {
   background: var(--paper);
 }
