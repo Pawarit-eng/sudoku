@@ -58,6 +58,14 @@ function cellClasses(i) {
       i !== props.selected,
     illegal: illegalCells.value.has(i),
     conflict: props.conflicts.has(`${row}-${col}`),
+    // A placed digit that doesn't match the puzzle's actual solution. Guarded
+    // by solution[i]!==0 so this never fires mid-creation, before a real
+    // solution exists (custom puzzles start with an all-zero solution).
+    wrong:
+      val !== 0 &&
+      !props.fixed[i] &&
+      props.solution[i] !== 0 &&
+      val !== props.solution[i],
     "border-right": col === 2 || col === 5,
     "border-bottom": row === 2 || row === 5,
   };
@@ -164,6 +172,12 @@ function cellClasses(i) {
 
 .cell.conflict {
   background: var(--clay-soft);
+}
+
+/* A placed digit that doesn't match the actual solution — flagged red even
+   if it doesn't (yet) break any row/column/box rule. */
+.cell.wrong .value {
+  color: var(--clay);
 }
 
 .value {
