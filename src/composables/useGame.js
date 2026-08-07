@@ -1,15 +1,18 @@
 import { reactive, computed, watch, onUnmounted, ref } from "vue";
 import {
   generatePuzzle,
-  findAllConflicts,
+  generateLinkedPuzzle,
+  findAllConflictsFor,
   isBoardComplete,
   analyzeCustomBoard,
 } from "../utils/sudokuEngine.js";
+import { getLayout } from "../utils/layouts.js";
 
 const STORAGE_KEY = "dad-sudoku-save-v1";
+const CLASSIC_CELLS = getLayout("classic").numCells;
 
-function emptyNotes() {
-  return Array.from({ length: 81 }, () => new Set());
+function emptyNotes(numCells) {
+  return Array.from({ length: numCells }, () => new Set());
 }
 
 function loadSave() {
@@ -17,6 +20,12 @@ function loadSave() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw);
+    const linkMode = data.linkMode ?? "classic";
+    const layout = getLayout(linkMode);
+    // Board shape must match the layout it claims to be — guards against a
+    // stale save from before a layout definition changed.
+    if (!Array.isArray(data.board) || data.board.length !== layout.numCells) return null;
+    data.linkMode = linkMode;
     data.notes = data.notes.map((arr) => new Set(arr));
     return data;
   } catch {
@@ -34,6 +43,7 @@ function persist(state) {
         solution: state.solution,
         notes: state.notes.map((s) => [...s]),
         difficulty: state.difficulty,
+        linkMode: state.linkMode,
         seconds: state.seconds,
         won: state.won,
         mode: state.mode,
@@ -48,14 +58,15 @@ export function useGame() {
   const saved = loadSave();
 
   const state = reactive({
-    board: saved?.board ?? new Array(81).fill(0),
-    fixed: saved?.fixed ?? new Array(81).fill(false),
-    solution: saved?.solution ?? new Array(81).fill(0),
-    notes: saved?.notes ?? emptyNotes(),
+    board: saved?.board ?? new Array(CLASSIC_CELLS).fill(0),
+    fixed: saved?.fixed ?? new Array(CLASSIC_CELLS).fill(false),
+    solution: saved?.solution ?? new Array(CLASSIC_CELLS).fill(0),
+    notes: saved?.notes ?? emptyNotes(CLASSIC_CELLS),
     difficulty: saved?.difficulty ?? "medium",
+    linkMode: saved?.linkMode ?? "classic",
     seconds: saved?.seconds ?? 0,
     won: saved?.won ?? false,
-    selected: null, // index 0-80
+    selected: null, // index into board/notes/fixed
     noteMode: false,
     hasSave: !!saved,
     mode: saved?.mode ?? "play", // "play" | "create"
@@ -63,11 +74,15 @@ export function useGame() {
     highlightNumber: 0, // drives illegal-cell/same-value highlighting on the grid
   });
 
+  // Board geometry for the current linkMode — cells, peer groups, per-board
+  // membership. Only changes on newGame/load, cached by id in layouts.js.
+  const layout = computed(() => getLayout(state.linkMode));
+
   let preCreateSnapshot = null;
   const history = ref([]);
   const future = ref([]);
 
-  const conflicts = computed(() => findAllConflicts(state.board));
+  const conflicts = computed(() => findAllConflictsFor(state.board, layout.value));
   const won = computed(
     () =>
       state.mode === "play" &&
@@ -106,13 +121,22 @@ export function useGame() {
     future.value.length = 0;
   }
 
-  function newGame(difficulty = state.difficulty) {
+  // Generates a fresh puzzle. `linkMode` picks the board layout (classic or
+  // one of the linked multi-board shapes from layouts.js); classic keeps
+  // using the original single-board generator, other modes go through the
+  // generalized multi-board one.
+  function newGame(linkMode = state.linkMode, difficulty = state.difficulty) {
     const safeDifficulty = difficulty === "custom" ? "medium" : difficulty;
-    const { puzzle, solution } = generatePuzzle(safeDifficulty);
+    const nextLayout = getLayout(linkMode);
+    const { puzzle, solution } =
+      linkMode === "classic"
+        ? generatePuzzle(safeDifficulty)
+        : generateLinkedPuzzle(nextLayout, safeDifficulty);
     state.board = puzzle.slice();
     state.solution = solution;
     state.fixed = puzzle.map((v) => v !== 0);
-    state.notes = emptyNotes();
+    state.notes = emptyNotes(nextLayout.numCells);
+    state.linkMode = linkMode;
     state.difficulty = safeDifficulty;
     state.seconds = 0;
     state.won = false;
@@ -131,7 +155,7 @@ export function useGame() {
   function restartPuzzle() {
     if (state.mode !== "play") return;
     pushHistory();
-    for (let i = 0; i < 81; i++) {
+    for (let i = 0; i < state.board.length; i++) {
       if (!state.fixed[i]) {
         state.board[i] = 0;
         state.notes[i].clear();
@@ -144,7 +168,7 @@ export function useGame() {
     state.noteMode = false;
   }
 
-  // --- custom puzzle creation ---
+  // --- custom puzzle creation (classic single board only) ---
 
   function startCreate() {
     if (state.mode !== "create") {
@@ -154,15 +178,17 @@ export function useGame() {
         notes: state.notes.map((s) => new Set(s)),
         solution: state.solution.slice(),
         difficulty: state.difficulty,
+        linkMode: state.linkMode,
         seconds: state.seconds,
         won: state.won,
       };
     }
-    state.board = new Array(81).fill(0);
-    state.fixed = new Array(81).fill(false);
-    state.notes = emptyNotes();
-    state.solution = new Array(81).fill(0);
+    state.board = new Array(CLASSIC_CELLS).fill(0);
+    state.fixed = new Array(CLASSIC_CELLS).fill(false);
+    state.notes = emptyNotes(CLASSIC_CELLS);
+    state.solution = new Array(CLASSIC_CELLS).fill(0);
     state.difficulty = "custom";
+    state.linkMode = "classic";
     state.seconds = 0;
     state.won = false;
     state.selected = null;
@@ -181,12 +207,13 @@ export function useGame() {
       state.notes = preCreateSnapshot.notes;
       state.solution = preCreateSnapshot.solution;
       state.difficulty = preCreateSnapshot.difficulty;
+      state.linkMode = preCreateSnapshot.linkMode;
       state.seconds = preCreateSnapshot.seconds;
       state.won = preCreateSnapshot.won;
       preCreateSnapshot = null;
       state.mode = "play";
     } else {
-      newGame("medium");
+      newGame("classic", "medium");
     }
     state.createMessage = "";
     state.selected = null;
@@ -196,8 +223,8 @@ export function useGame() {
   }
 
   function clearCreateBoard() {
-    state.board = new Array(81).fill(0);
-    state.notes = emptyNotes();
+    state.board = new Array(CLASSIC_CELLS).fill(0);
+    state.notes = emptyNotes(CLASSIC_CELLS);
     state.createMessage = "";
     history.value.length = 0;
     future.value.length = 0;
@@ -223,7 +250,7 @@ export function useGame() {
 
     state.fixed = state.board.map((v) => v !== 0);
     state.solution = result.solution;
-    state.notes = emptyNotes();
+    state.notes = emptyNotes(CLASSIC_CELLS);
     state.seconds = 0;
     state.won = false;
     state.selected = null;
@@ -242,14 +269,7 @@ export function useGame() {
   }
 
   function clearNotesAround(i, num) {
-    const row = Math.floor(i / 9);
-    const col = i % 9;
-    for (let c = 0; c < 9; c++) state.notes[row * 9 + c].delete(num);
-    for (let r = 0; r < 9; r++) state.notes[r * 9 + col].delete(num);
-    const br = Math.floor(row / 3) * 3;
-    const bc = Math.floor(col / 3) * 3;
-    for (let r = br; r < br + 3; r++)
-      for (let c = bc; c < bc + 3; c++) state.notes[r * 9 + c].delete(num);
+    for (const p of layout.value.peers[i]) state.notes[p].delete(num);
   }
 
   function inputNumber(num) {
@@ -303,21 +323,15 @@ export function useGame() {
   }
 
   // Fills every empty, non-fixed cell with its remaining candidates (1-9 minus
-  // what's already used in that cell's row/col/box) — a "fill all notes"
-  // helper covering the whole board in one tap, not just the selected cell.
+  // what's already used among that cell's peers) — a "fill all notes" helper
+  // covering the whole board in one tap, not just the selected cell.
   function autoNoteAll() {
     pushHistory();
-    for (let i = 0; i < 81; i++) {
+    const L = layout.value;
+    for (let i = 0; i < L.numCells; i++) {
       if (state.fixed[i] || state.board[i] !== 0) continue;
-      const row = Math.floor(i / 9);
-      const col = i % 9;
       const used = new Set();
-      for (let c = 0; c < 9; c++) used.add(state.board[row * 9 + c]);
-      for (let r = 0; r < 9; r++) used.add(state.board[r * 9 + col]);
-      const br = Math.floor(row / 3) * 3;
-      const bc = Math.floor(col / 3) * 3;
-      for (let r = br; r < br + 3; r++)
-        for (let c = bc; c < bc + 3; c++) used.add(state.board[r * 9 + c]);
+      for (const p of L.peers[i]) if (state.board[p]) used.add(state.board[p]);
       const set = new Set();
       for (let n = 1; n <= 9; n++) if (!used.has(n)) set.add(n);
       state.notes[i] = set;
@@ -327,10 +341,10 @@ export function useGame() {
   // Wipes every pencil mark on the board, leaving placed numbers untouched.
   function clearAllNotes() {
     pushHistory();
-    state.notes = emptyNotes();
+    state.notes = emptyNotes(layout.value.numCells);
   }
 
-  if (!saved) newGame(state.difficulty);
+  if (!saved) newGame();
 
   watch(
     () => [
@@ -339,6 +353,7 @@ export function useGame() {
       state.fixed,
       state.solution,
       state.difficulty,
+      state.linkMode,
       state.seconds,
       state.won,
       state.mode,
@@ -349,6 +364,7 @@ export function useGame() {
 
   return {
     state,
+    layout,
     conflicts,
     won,
     formattedTime,
