@@ -64,6 +64,8 @@ function blockPreview(mode) {
 }
 
 const modeCards = LINK_MODES.map((m) => ({ ...m, preview: blockPreview(m) }));
+const straightModeCards = modeCards.filter((m) => !m.id.startsWith("vz-") && !m.id.startsWith("hz-"));
+const zigzagModeCards = modeCards.filter((m) => m.id.startsWith("vz-") || m.id.startsWith("hz-"));
 
 const counts = computed(() => {
   const L = layout.value;
@@ -182,7 +184,33 @@ function pickRestart() {
       <p class="section-label">รูปแบบกระดาน</p>
       <div class="mode-grid">
         <button
-          v-for="m in modeCards"
+          v-for="m in straightModeCards"
+          :key="m.id"
+          class="mode-card"
+          :class="{ picked: pickedLinkMode === m.id }"
+          type="button"
+          @click="pickedLinkMode = m.id"
+        >
+          <span
+            class="mode-preview"
+            :style="{ '--pw': m.preview.width, '--ph': m.preview.height }"
+          >
+            <span
+              v-for="(b, bi) in m.preview.blocks"
+              :key="bi"
+              class="mode-block"
+              :class="{ shared: b.shared }"
+              :style="{ gridRow: b.r + 1, gridColumn: b.c + 1 }"
+            ></span>
+          </span>
+          <span class="mode-label">{{ m.label }}</span>
+        </button>
+      </div>
+
+      <p class="section-label">ซิกแซกหลายกระดาน</p>
+      <div class="mode-grid">
+        <button
+          v-for="m in zigzagModeCards"
           :key="m.id"
           class="mode-card"
           :class="{ picked: pickedLinkMode === m.id }"

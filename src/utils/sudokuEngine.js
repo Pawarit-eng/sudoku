@@ -61,14 +61,23 @@ function genericMostConstrainedCell(board, peers, numCells) {
 // MRV backtracking search. Counts solutions up to `limit` and, if it finds
 // exactly one before hitting the limit, hands back a snapshot of it — used
 // both for the puzzle-digger's uniqueness check and for validating a
-// hand-entered custom puzzle.
-function genericSolveAnalysis(board, peers, numCells, limit = 2) {
+// hand-entered custom puzzle. `nodeBudget` bounds how many cells this single
+// search will visit before giving up (`aborted: true`) — a large linked
+// layout with very few clues left can otherwise search near-endlessly
+// trying to prove uniqueness of an under-constrained puzzle.
+function genericSolveAnalysis(board, peers, numCells, limit = 2, nodeBudget = Infinity) {
   const b = board.slice();
   let count = 0;
   let firstSolution = null;
+  let nodes = 0;
+  let aborted = false;
 
   function solve() {
-    if (count >= limit) return;
+    if (count >= limit || aborted) return;
+    if (++nodes > nodeBudget) {
+      aborted = true;
+      return;
+    }
     const next = genericMostConstrainedCell(b, peers, numCells);
     if (next === null) {
       count++;
@@ -77,7 +86,7 @@ function genericSolveAnalysis(board, peers, numCells, limit = 2) {
     }
     if (next.candidates.length === 0) return; // dead end
     for (const num of next.candidates) {
-      if (count >= limit) return;
+      if (count >= limit || aborted) return;
       b[next.pos] = num;
       solve();
       b[next.pos] = 0;
@@ -85,7 +94,7 @@ function genericSolveAnalysis(board, peers, numCells, limit = 2) {
   }
 
   solve();
-  return { count, firstSolution };
+  return { count, firstSolution, aborted };
 }
 
 // Backtracking fill of a full valid board, randomized so each call differs.
@@ -109,21 +118,28 @@ function genericGenerateSolvedBoard(numCells, peers) {
 }
 
 // Removes clues one at a time (random order), only keeping a removal if the
-// puzzle still has a unique solution.
+// puzzle still has a unique solution. Bounded on two levels so a big linked
+// layout can't hang the UI: each uniqueness check gets a node budget (an
+// inconclusive check is treated as "unsafe, keep the clue"), and the whole
+// dig stops early past a wall-clock budget, settling for a puzzle with a
+// few more clues than the nominal target rather than freezing.
 function genericDigHoles(solved, peers, numCells, targetClues) {
   const puzzle = solved.slice();
   const order = shuffled([...Array(numCells).keys()]);
   let clues = numCells;
+  const nodeBudget = 15000;
+  const deadline = Date.now() + 8000;
 
   for (const pos of order) {
     if (clues <= targetClues) break;
+    if (Date.now() > deadline) break;
     const backup = puzzle[pos];
     puzzle[pos] = 0;
-    const { count } = genericSolveAnalysis(puzzle, peers, numCells, 2);
-    if (count === 1) {
+    const { count, aborted } = genericSolveAnalysis(puzzle, peers, numCells, 2, nodeBudget);
+    if (count === 1 && !aborted) {
       clues--;
     } else {
-      puzzle[pos] = backup; // removing this one broke uniqueness, keep it
+      puzzle[pos] = backup; // removing this one broke uniqueness (or we couldn't prove it didn't), keep it
     }
   }
   return puzzle;

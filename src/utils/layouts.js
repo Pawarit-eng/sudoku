@@ -12,26 +12,52 @@
 // the same cells (col offset = 3 - overlap). Horizontal modes mirror this
 // with rows/cols swapped.
 
+// Generates a chain of `count` boards along `axis` ("v" = stack downward,
+// sharing a block-ROW band each link; "h" = stack rightward, sharing a
+// block-COLUMN band each link). `overlapBlocks` (1-3) sets how many of the
+// shared band's 3 blocks are literally the same cells — see module doc.
+// `zigzag: true` alternates the offset direction each link (board 3 lands
+// back under/right-of board 1, board 4 back where board 2 was, ...), which
+// is what keeps a long chain from drifting off-screen — same shape as the
+// "connected boards" puzzles in other sudoku apps.
+function chainBoards({ axis, overlapBlocks, count, zigzag = false }) {
+  const shift = 3 - overlapBlocks; // blocks
+  const boards = [{ blockRow: 0, blockCol: 0 }];
+  let dir = 1;
+  for (let i = 1; i < count; i++) {
+    const prev = boards[i - 1];
+    const delta = zigzag ? dir * shift : shift;
+    if (zigzag) dir *= -1;
+    boards.push(
+      axis === "v"
+        ? { blockRow: prev.blockRow + 2, blockCol: prev.blockCol + delta }
+        : { blockRow: prev.blockRow + delta, blockCol: prev.blockCol + 2 }
+    );
+  }
+  return boards;
+}
+
 export const LINK_MODES = [
   { id: "classic", label: "กระดานเดี่ยว", boards: [{ blockRow: 0, blockCol: 0 }] },
 
-  { id: "v-1x2", label: "เชื่อม 1 แนวตั้ง", boards: [{ blockRow: 0, blockCol: 0 }, { blockRow: 2, blockCol: 2 }] },
-  { id: "v-2x2", label: "เชื่อม 2 แนวตั้ง", boards: [{ blockRow: 0, blockCol: 0 }, { blockRow: 2, blockCol: 1 }] },
-  { id: "v-3x2", label: "เชื่อม 3 แนวตั้ง (2 กระดาน)", boards: [{ blockRow: 0, blockCol: 0 }, { blockRow: 2, blockCol: 0 }] },
-  {
-    id: "v-3x3",
-    label: "เชื่อม 3 แนวตั้ง (3 กระดาน)",
-    boards: [{ blockRow: 0, blockCol: 0 }, { blockRow: 2, blockCol: 0 }, { blockRow: 4, blockCol: 0 }],
-  },
+  { id: "v-1x2", label: "เชื่อม 1 แนวตั้ง", boards: chainBoards({ axis: "v", overlapBlocks: 1, count: 2 }) },
+  { id: "v-2x2", label: "เชื่อม 2 แนวตั้ง", boards: chainBoards({ axis: "v", overlapBlocks: 2, count: 2 }) },
+  { id: "v-3x2", label: "เชื่อม 3 แนวตั้ง (2 กระดาน)", boards: chainBoards({ axis: "v", overlapBlocks: 3, count: 2 }) },
+  { id: "v-3x3", label: "เชื่อม 3 แนวตั้ง (3 กระดาน)", boards: chainBoards({ axis: "v", overlapBlocks: 3, count: 3 }) },
 
-  { id: "h-1x2", label: "เชื่อม 1 แนวนอน", boards: [{ blockRow: 0, blockCol: 0 }, { blockRow: 2, blockCol: 2 }] },
-  { id: "h-2x2", label: "เชื่อม 2 แนวนอน", boards: [{ blockRow: 0, blockCol: 0 }, { blockRow: 1, blockCol: 2 }] },
-  { id: "h-3x2", label: "เชื่อม 3 แนวนอน (2 กระดาน)", boards: [{ blockRow: 0, blockCol: 0 }, { blockRow: 0, blockCol: 2 }] },
-  {
-    id: "h-3x3",
-    label: "เชื่อม 3 แนวนอน (3 กระดาน)",
-    boards: [{ blockRow: 0, blockCol: 0 }, { blockRow: 0, blockCol: 2 }, { blockRow: 0, blockCol: 4 }],
-  },
+  { id: "h-1x2", label: "เชื่อม 1 แนวนอน", boards: chainBoards({ axis: "h", overlapBlocks: 1, count: 2 }) },
+  { id: "h-2x2", label: "เชื่อม 2 แนวนอน", boards: chainBoards({ axis: "h", overlapBlocks: 2, count: 2 }) },
+  { id: "h-3x2", label: "เชื่อม 3 แนวนอน (2 กระดาน)", boards: chainBoards({ axis: "h", overlapBlocks: 3, count: 2 }) },
+  { id: "h-3x3", label: "เชื่อม 3 แนวนอน (3 กระดาน)", boards: chainBoards({ axis: "h", overlapBlocks: 3, count: 3 }) },
+
+  // Zigzag chains: 1-block overlap each link, alternating side — a long
+  // snake of boards instead of a single straight seam.
+  { id: "vz-3", label: "ซิกแซก 3 กระดาน (แนวตั้ง)", boards: chainBoards({ axis: "v", overlapBlocks: 1, count: 3, zigzag: true }) },
+  { id: "vz-4", label: "ซิกแซก 4 กระดาน (แนวตั้ง)", boards: chainBoards({ axis: "v", overlapBlocks: 1, count: 4, zigzag: true }) },
+  { id: "vz-5", label: "ซิกแซก 5 กระดาน (แนวตั้ง)", boards: chainBoards({ axis: "v", overlapBlocks: 1, count: 5, zigzag: true }) },
+  { id: "hz-3", label: "ซิกแซก 3 กระดาน (แนวนอน)", boards: chainBoards({ axis: "h", overlapBlocks: 1, count: 3, zigzag: true }) },
+  { id: "hz-4", label: "ซิกแซก 4 กระดาน (แนวนอน)", boards: chainBoards({ axis: "h", overlapBlocks: 1, count: 4, zigzag: true }) },
+  { id: "hz-5", label: "ซิกแซก 5 กระดาน (แนวนอน)", boards: chainBoards({ axis: "h", overlapBlocks: 1, count: 5, zigzag: true }) },
 ];
 
 const BOX = 3;
