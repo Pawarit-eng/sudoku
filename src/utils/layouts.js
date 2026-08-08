@@ -51,13 +51,9 @@ export const LINK_MODES = [
   { id: "h-3x3", label: "เชื่อม 3 แนวนอน (3 กระดาน)", boards: chainBoards({ axis: "h", overlapBlocks: 3, count: 3 }) },
 
   // Zigzag chains: 1-block overlap each link, alternating side — a long
-  // snake of boards instead of a single straight seam.
+  // snake of boards instead of a single straight seam. Capped at 3 boards.
   { id: "vz-3", label: "ซิกแซก 3 กระดาน (แนวตั้ง)", boards: chainBoards({ axis: "v", overlapBlocks: 1, count: 3, zigzag: true }) },
-  { id: "vz-4", label: "ซิกแซก 4 กระดาน (แนวตั้ง)", boards: chainBoards({ axis: "v", overlapBlocks: 1, count: 4, zigzag: true }) },
-  { id: "vz-5", label: "ซิกแซก 5 กระดาน (แนวตั้ง)", boards: chainBoards({ axis: "v", overlapBlocks: 1, count: 5, zigzag: true }) },
   { id: "hz-3", label: "ซิกแซก 3 กระดาน (แนวนอน)", boards: chainBoards({ axis: "h", overlapBlocks: 1, count: 3, zigzag: true }) },
-  { id: "hz-4", label: "ซิกแซก 4 กระดาน (แนวนอน)", boards: chainBoards({ axis: "h", overlapBlocks: 1, count: 4, zigzag: true }) },
-  { id: "hz-5", label: "ซิกแซก 5 กระดาน (แนวนอน)", boards: chainBoards({ axis: "h", overlapBlocks: 1, count: 5, zigzag: true }) },
 ];
 
 const BOX = 3;
