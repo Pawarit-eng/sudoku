@@ -64,8 +64,17 @@ function blockPreview(mode) {
 }
 
 const modeCards = LINK_MODES.map((m) => ({ ...m, preview: blockPreview(m) }));
-const straightModeCards = modeCards.filter((m) => !m.id.startsWith("vz-") && !m.id.startsWith("hz-"));
-const zigzagModeCards = modeCards.filter((m) => m.id.startsWith("vz-") || m.id.startsWith("hz-"));
+
+// Grouped by connection shape, not generation order — easiest way for
+// someone picking a mode to scan ("I want a vertical one") rather than one
+// long undifferentiated list.
+const modeGroups = [
+  { label: "เดี่ยว", cards: modeCards.filter((m) => m.id === "classic") },
+  { label: "แนวตั้ง", cards: modeCards.filter((m) => m.id.startsWith("v-")) },
+  { label: "แนวนอน", cards: modeCards.filter((m) => m.id.startsWith("h-")) },
+  { label: "ซิกแซก", cards: modeCards.filter((m) => m.id.startsWith("vz-") || m.id.startsWith("hz-")) },
+  { label: "ทแยง", cards: modeCards.filter((m) => m.id.startsWith("d-")) },
+];
 
 const counts = computed(() => {
   const L = layout.value;
@@ -181,57 +190,33 @@ function pickRestart() {
 
       <div class="divider"><span>หรือให้สุ่มโจทย์</span></div>
 
-      <p class="section-label">รูปแบบกระดาน</p>
-      <div class="mode-grid">
-        <button
-          v-for="m in straightModeCards"
-          :key="m.id"
-          class="mode-card"
-          :class="{ picked: pickedLinkMode === m.id }"
-          type="button"
-          @click="pickedLinkMode = m.id"
-        >
-          <span
-            class="mode-preview"
-            :style="{ '--pw': m.preview.width, '--ph': m.preview.height }"
+      <template v-for="group in modeGroups" :key="group.label">
+        <p class="section-label">{{ group.label }}</p>
+        <div class="mode-grid">
+          <button
+            v-for="m in group.cards"
+            :key="m.id"
+            class="mode-card"
+            :class="{ picked: pickedLinkMode === m.id }"
+            type="button"
+            @click="pickedLinkMode = m.id"
           >
             <span
-              v-for="(b, bi) in m.preview.blocks"
-              :key="bi"
-              class="mode-block"
-              :class="{ shared: b.shared }"
-              :style="{ gridRow: b.r + 1, gridColumn: b.c + 1 }"
-            ></span>
-          </span>
-          <span class="mode-label">{{ m.label }}</span>
-        </button>
-      </div>
-
-      <p class="section-label">ซิกแซกหลายกระดาน</p>
-      <div class="mode-grid">
-        <button
-          v-for="m in zigzagModeCards"
-          :key="m.id"
-          class="mode-card"
-          :class="{ picked: pickedLinkMode === m.id }"
-          type="button"
-          @click="pickedLinkMode = m.id"
-        >
-          <span
-            class="mode-preview"
-            :style="{ '--pw': m.preview.width, '--ph': m.preview.height }"
-          >
-            <span
-              v-for="(b, bi) in m.preview.blocks"
-              :key="bi"
-              class="mode-block"
-              :class="{ shared: b.shared }"
-              :style="{ gridRow: b.r + 1, gridColumn: b.c + 1 }"
-            ></span>
-          </span>
-          <span class="mode-label">{{ m.label }}</span>
-        </button>
-      </div>
+              class="mode-preview"
+              :style="{ '--pw': m.preview.width, '--ph': m.preview.height }"
+            >
+              <span
+                v-for="(b, bi) in m.preview.blocks"
+                :key="bi"
+                class="mode-block"
+                :class="{ shared: b.shared }"
+                :style="{ gridRow: b.r + 1, gridColumn: b.c + 1 }"
+              ></span>
+            </span>
+            <span class="mode-label">{{ m.label }}</span>
+          </button>
+        </div>
+      </template>
 
       <p class="section-label">ความยาก</p>
       <button class="diff-btn" @click="pickDifficulty('easy')">

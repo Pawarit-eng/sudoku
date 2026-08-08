@@ -12,10 +12,14 @@
 // the same cells (col offset = 3 - overlap). Horizontal modes mirror this
 // with rows/cols swapped.
 
-// Generates a chain of `count` boards along `axis` ("v" = stack downward,
-// sharing a block-ROW band each link; "h" = stack rightward, sharing a
-// block-COLUMN band each link). `overlapBlocks` (1-3) sets how many of the
-// shared band's 3 blocks are literally the same cells — see module doc.
+// Generates a chain of `count` boards along `axis`:
+//  - "v" stacks downward, sharing a block-ROW band each link.
+//  - "h" stacks rightward, sharing a block-COLUMN band each link.
+//  - "d" steps diagonally (down-right each link), touching the next board
+//    at a single corner block only — diagonal connections are always a
+//    1-block (9-cell) corner overlap, there's no wider "band" to share.
+// `overlapBlocks` (1-3, ignored for "d") sets how many of the shared band's
+// 3 blocks are literally the same cells — see module doc.
 // `zigzag: true` alternates the offset direction each link (board 3 lands
 // back under/right-of board 1, board 4 back where board 2 was, ...), which
 // is what keeps a long chain from drifting off-screen — same shape as the
@@ -28,11 +32,11 @@ function chainBoards({ axis, overlapBlocks, count, zigzag = false }) {
     const prev = boards[i - 1];
     const delta = zigzag ? dir * shift : shift;
     if (zigzag) dir *= -1;
-    boards.push(
-      axis === "v"
-        ? { blockRow: prev.blockRow + 2, blockCol: prev.blockCol + delta }
-        : { blockRow: prev.blockRow + delta, blockCol: prev.blockCol + 2 }
-    );
+    let next;
+    if (axis === "v") next = { blockRow: prev.blockRow + 2, blockCol: prev.blockCol + delta };
+    else if (axis === "h") next = { blockRow: prev.blockRow + delta, blockCol: prev.blockCol + 2 };
+    else next = { blockRow: prev.blockRow + 2, blockCol: prev.blockCol + 2 }; // "d"
+    boards.push(next);
   }
   return boards;
 }
@@ -54,6 +58,9 @@ export const LINK_MODES = [
   // snake of boards instead of a single straight seam. Capped at 3 boards.
   { id: "vz-3", label: "ซิกแซก 3 กระดาน (แนวตั้ง)", boards: chainBoards({ axis: "v", overlapBlocks: 1, count: 3, zigzag: true }) },
   { id: "hz-3", label: "ซิกแซก 3 กระดาน (แนวนอน)", boards: chainBoards({ axis: "h", overlapBlocks: 1, count: 3, zigzag: true }) },
+
+  // Diagonal chain: each board touches the next at just one corner block.
+  { id: "d-3", label: "ทแยง 3 กระดาน", boards: chainBoards({ axis: "d", count: 3 }) },
 ];
 
 const BOX = 3;

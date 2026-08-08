@@ -158,6 +158,10 @@ function cellClasses(i) {
   font-family: "Inter", sans-serif;
   min-width: 0;
   min-height: 0;
+  /* Establishes a query container sized to this cell's own rendered box,
+     so digit/note size below can scale off the ACTUAL cell size — correct
+     whether the cell is small because of many columns, many rows, or both. */
+  container-type: inline-size;
 }
 
 .cell.blank {
@@ -231,7 +235,10 @@ function cellClasses(i) {
 }
 
 .value {
-  font-size: clamp(14px, 4.6vw, 24px);
+  /* Sized off the cell's own box (container query units), not the
+     viewport — correct whether the cell is small from many columns, many
+     rows, or both, unlike a vw-based size which only sees the viewport. */
+  font-size: clamp(7px, 66cqw, 26px);
   font-weight: 700;
   color: var(--accent-text);
   font-variant-numeric: tabular-nums;
@@ -264,7 +271,10 @@ function cellClasses(i) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(6px, 2.1vw, 11px);
+  /* Same container as .value (the cell) — each note sits in a 3x3
+     sub-grid, so ~28% of the cell's width is as big as one digit can go
+     without the 9 of them crowding into each other. */
+  font-size: clamp(5px, 28cqw, 13px);
   font-weight: 700;
   color: var(--text);
   line-height: 1;
