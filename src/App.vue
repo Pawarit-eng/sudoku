@@ -65,16 +65,14 @@ function blockPreview(mode) {
 
 const modeCards = LINK_MODES.map((m) => ({ ...m, preview: blockPreview(m) }));
 
-// Grouped by connection shape, not generation order — easiest way for
-// someone picking a mode to scan ("I want a vertical one") rather than one
-// long undifferentiated list.
-const modeGroups = [
-  { label: "เดี่ยว", cards: modeCards.filter((m) => m.id === "classic") },
-  { label: "แนวตั้ง", cards: modeCards.filter((m) => m.id.startsWith("v-")) },
-  { label: "แนวนอน", cards: modeCards.filter((m) => m.id.startsWith("h-")) },
-  { label: "ซิกแซก", cards: modeCards.filter((m) => m.id.startsWith("vz-") || m.id.startsWith("hz-")) },
-  { label: "ทแยง", cards: modeCards.filter((m) => m.id.startsWith("d-")) },
-];
+// Grouped by board count first — "how many boards do I want" is the
+// decision someone makes before "which shape" — then every combination
+// (straight vertical/horizontal at each overlap, diagonal, zigzag) within
+// that count, in LINK_MODES declaration order.
+const modeGroups = [1, 2, 3].map((n) => ({
+  label: `${n} กระดาน`,
+  cards: modeCards.filter((m) => m.boards.length === n),
+}));
 
 const counts = computed(() => {
   const L = layout.value;
@@ -113,7 +111,7 @@ function pickDifficulty(diff) {
 }
 
 function pickCreate() {
-  startCreate();
+  startCreate(pickedLinkMode.value);
   showPicker.value = false;
 }
 
@@ -184,11 +182,8 @@ function pickRestart() {
       >
         ↺ เริ่มเกมนี้ใหม่ <span>ล้างเลขที่กรอกไว้ แต่โจทย์เดิม</span>
       </button>
-      <button class="diff-btn create-btn" @click="pickCreate">
-        ✎ สร้างโจทย์เอง <span>กรอกเลขตั้งต้นเองทั้งหมด</span>
-      </button>
 
-      <div class="divider"><span>หรือให้สุ่มโจทย์</span></div>
+      <div class="divider"><span>หรือเริ่มโจทย์ใหม่ — เลือกรูปแบบกระดานก่อน</span></div>
 
       <template v-for="group in modeGroups" :key="group.label">
         <p class="section-label">{{ group.label }}</p>
@@ -218,7 +213,10 @@ function pickRestart() {
         </div>
       </template>
 
-      <p class="section-label">ความยาก</p>
+      <p class="section-label">แล้วเลือกวิธีเริ่ม</p>
+      <button class="diff-btn create-btn" @click="pickCreate">
+        ✎ สร้างโจทย์เอง <span>กรอกเลขตั้งต้นเองทั้งหมด</span>
+      </button>
       <button class="diff-btn" @click="pickDifficulty('easy')">
         ง่าย <span>เหมาะสำหรับเล่นสบายๆ</span>
       </button>

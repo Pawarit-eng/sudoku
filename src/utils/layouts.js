@@ -59,7 +59,10 @@ export const LINK_MODES = [
   { id: "vz-3", label: "ซิกแซก 3 กระดาน (แนวตั้ง)", boards: chainBoards({ axis: "v", overlapBlocks: 1, count: 3, zigzag: true }) },
   { id: "hz-3", label: "ซิกแซก 3 กระดาน (แนวนอน)", boards: chainBoards({ axis: "h", overlapBlocks: 1, count: 3, zigzag: true }) },
 
-  // Diagonal chain: each board touches the next at just one corner block.
+  // Diagonal chain: each board touches the next at just one corner block
+  // (a diagonal connection is always a single 9-cell corner overlap — there's
+  // no wider "1/2/3 blocks" variant like the vertical/horizontal ones have).
+  { id: "d-2", label: "ทแยง 2 กระดาน", boards: chainBoards({ axis: "d", count: 2 }) },
   { id: "d-3", label: "ทแยง 3 กระดาน", boards: chainBoards({ axis: "d", count: 3 }) },
 ];
 

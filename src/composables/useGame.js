@@ -4,7 +4,7 @@ import {
   generateLinkedPuzzle,
   findAllConflictsFor,
   isBoardComplete,
-  analyzeCustomBoard,
+  analyzeCustomBoardFor,
 } from "../utils/sudokuEngine.js";
 import { getLayout } from "../utils/layouts.js";
 
@@ -168,9 +168,11 @@ export function useGame() {
     state.noteMode = false;
   }
 
-  // --- custom puzzle creation (classic single board only) ---
+  // --- custom puzzle creation ---
 
-  function startCreate() {
+  // `linkMode` picks which board layout to hand-fill (classic or one of the
+  // linked multi-board shapes) — same catalog as newGame.
+  function startCreate(linkMode = "classic") {
     if (state.mode !== "create") {
       preCreateSnapshot = {
         board: state.board.slice(),
@@ -183,12 +185,13 @@ export function useGame() {
         won: state.won,
       };
     }
-    state.board = new Array(CLASSIC_CELLS).fill(0);
-    state.fixed = new Array(CLASSIC_CELLS).fill(false);
-    state.notes = emptyNotes(CLASSIC_CELLS);
-    state.solution = new Array(CLASSIC_CELLS).fill(0);
+    const nextLayout = getLayout(linkMode);
+    state.board = new Array(nextLayout.numCells).fill(0);
+    state.fixed = new Array(nextLayout.numCells).fill(false);
+    state.notes = emptyNotes(nextLayout.numCells);
+    state.solution = new Array(nextLayout.numCells).fill(0);
     state.difficulty = "custom";
-    state.linkMode = "classic";
+    state.linkMode = linkMode;
     state.seconds = 0;
     state.won = false;
     state.selected = null;
@@ -223,8 +226,8 @@ export function useGame() {
   }
 
   function clearCreateBoard() {
-    state.board = new Array(CLASSIC_CELLS).fill(0);
-    state.notes = emptyNotes(CLASSIC_CELLS);
+    state.board = new Array(layout.value.numCells).fill(0);
+    state.notes = emptyNotes(layout.value.numCells);
     state.createMessage = "";
     history.value.length = 0;
     future.value.length = 0;
@@ -233,7 +236,7 @@ export function useGame() {
   // Validates the hand-entered board; on success, locks the filled cells in
   // as clues and switches into normal play against the found solution.
   function confirmCustomPuzzle() {
-    const result = analyzeCustomBoard(state.board);
+    const result = analyzeCustomBoardFor(state.board, layout.value);
 
     if (result.status === "conflict") {
       state.createMessage = "มีเลขซ้ำกันในแถว/คอลัมน์/บล็อกเดียวกัน (ช่องสีแดง) แก้ก่อนนะ";
@@ -247,10 +250,14 @@ export function useGame() {
       state.createMessage = "โจทย์นี้ยังตอบได้มากกว่า 1 แบบ ลองใส่เลขเพิ่มอีกนิดให้เหลือคำตอบเดียว";
       return false;
     }
+    if (result.status === "inconclusive") {
+      state.createMessage = "กระดานใหญ่เกินจะเช็กได้ทัน ลองใส่เลขเพิ่มอีกหน่อยให้แคบลง แล้วกดยืนยันอีกที";
+      return false;
+    }
 
     state.fixed = state.board.map((v) => v !== 0);
     state.solution = result.solution;
-    state.notes = emptyNotes(CLASSIC_CELLS);
+    state.notes = emptyNotes(layout.value.numCells);
     state.seconds = 0;
     state.won = false;
     state.selected = null;

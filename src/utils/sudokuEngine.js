@@ -165,20 +165,37 @@ function genericFindAllConflicts(board, peers, numCells) {
 
 const CLASSIC = getLayout("classic");
 
-// Validates a board the user typed in by hand (a custom puzzle). Returns one
-// of:
-//   { status: "conflict", conflicts }  — duplicate digits in a row/col/box
+// Validates a board the user typed in by hand (a custom puzzle), for any
+// layout. Returns one of:
+//   { status: "conflict", conflicts }  — duplicate digits in a shared unit
 //   { status: "unsolvable" }           — no arrangement completes it
 //   { status: "multiple" }             — more than one valid completion
+//   { status: "inconclusive" }         — search budget ran out before it
+//                                         could prove uniqueness either way
+//                                         (only possible on the biggest
+//                                         linked layouts) — ask for more clues
 //   { status: "unique", solution }     — exactly one valid completion
-export function analyzeCustomBoard(board) {
-  const conflicts = findAllConflicts(board);
+export function analyzeCustomBoardFor(board, layout) {
+  const conflicts = findAllConflictsFor(board, layout);
   if (conflicts.size > 0) return { status: "conflict", conflicts };
 
-  const { count, firstSolution } = genericSolveAnalysis(board, CLASSIC.peers, CLASSIC.numCells, 2);
+  const { count, firstSolution, aborted } = genericSolveAnalysis(
+    board,
+    layout.peers,
+    layout.numCells,
+    2,
+    200000
+  );
+  if (aborted) return { status: "inconclusive" };
   if (count === 0) return { status: "unsolvable" };
   if (count >= 2) return { status: "multiple" };
   return { status: "unique", solution: firstSolution };
+}
+
+// Classic-only convenience wrapper — kept for callers that never deal with
+// linked layouts.
+export function analyzeCustomBoard(board) {
+  return analyzeCustomBoardFor(board, CLASSIC);
 }
 
 // Difficulty presets: how many clues to leave on the board (out of 81).
