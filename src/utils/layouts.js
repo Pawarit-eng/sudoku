@@ -15,16 +15,19 @@
 // Generates a chain of `count` boards along `axis`:
 //  - "v" stacks downward, sharing a block-ROW band each link.
 //  - "h" stacks rightward, sharing a block-COLUMN band each link.
-//  - "d" steps diagonally (down-right each link), touching the next board
-//    at a single corner block only — diagonal connections are always a
-//    1-block (9-cell) corner overlap, there's no wider "band" to share.
-// `overlapBlocks` (1-3, ignored for "d") sets how many of the shared band's
-// 3 blocks are literally the same cells — see module doc.
+//  - "d" steps diagonally (down-right each link). `diagonalStep` (blocks,
+//    1 or 2) sets how far: 2 = the boards only touch at a single corner
+//    block (9 cells); 1 = a "deep" diagonal where consecutive boards
+//    overlap across a 2x2-block corner (36 cells) — and, since the step is
+//    small enough, board N also overlaps board N+2 by one block, not just
+//    its immediate neighbors.
+// `overlapBlocks` (1-3, used by "v"/"h" only) sets how many of the shared
+// band's 3 blocks are literally the same cells — see module doc.
 // `zigzag: true` alternates the offset direction each link (board 3 lands
 // back under/right-of board 1, board 4 back where board 2 was, ...), which
 // is what keeps a long chain from drifting off-screen — same shape as the
 // "connected boards" puzzles in other sudoku apps.
-function chainBoards({ axis, overlapBlocks, count, zigzag = false }) {
+function chainBoards({ axis, overlapBlocks, count, zigzag = false, diagonalStep = 2 }) {
   const shift = 3 - overlapBlocks; // blocks
   const boards = [{ blockRow: 0, blockCol: 0 }];
   let dir = 1;
@@ -35,7 +38,7 @@ function chainBoards({ axis, overlapBlocks, count, zigzag = false }) {
     let next;
     if (axis === "v") next = { blockRow: prev.blockRow + 2, blockCol: prev.blockCol + delta };
     else if (axis === "h") next = { blockRow: prev.blockRow + delta, blockCol: prev.blockCol + 2 };
-    else next = { blockRow: prev.blockRow + 2, blockCol: prev.blockCol + 2 }; // "d"
+    else next = { blockRow: prev.blockRow + diagonalStep, blockCol: prev.blockCol + diagonalStep }; // "d"
     boards.push(next);
   }
   return boards;
@@ -64,6 +67,10 @@ export const LINK_MODES = [
   // no wider "1/2/3 blocks" variant like the vertical/horizontal ones have).
   { id: "d-2", label: "ทแยง 2 กระดาน", boards: chainBoards({ axis: "d", count: 2 }) },
   { id: "d-3", label: "ทแยง 3 กระดาน", boards: chainBoards({ axis: "d", count: 3 }) },
+  // Same diagonal chain, tighter step — a deeper 2x2-block overlap between
+  // consecutive boards (and, since the step is short, board 1 and board 3
+  // end up overlapping too, not just adjacent pairs).
+  { id: "d-3-deep", label: "ทแยง 3 กระดาน (เชื่อมลึก)", boards: chainBoards({ axis: "d", count: 3, diagonalStep: 1 }) },
 ];
 
 const BOX = 3;
